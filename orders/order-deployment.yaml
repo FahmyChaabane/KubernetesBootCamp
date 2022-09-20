@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: order
+  template:
+    metadata:
+      labels:
+        app: order
+        environment: test
+        departement: engineering
+        tier: backend
+    spec:
+      containers:
+      - name: order
+        image: amigoscode/kubernetes:order-v1
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 8081
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: order # service name
+spec:
+  type: ClusterIP # this is default if it is ommited
+  selector:
+    app: order # will tell the service to send trafic to any pod that has a specific set of labels # must match with template label
+  ports:
+  - port: 80 # port the service to be asssociated with # does not have to be 8081 # could be 80, just some people like to keep it similar to container port
+    targetPort: 8081 # MUST match with the port inside the containers
+

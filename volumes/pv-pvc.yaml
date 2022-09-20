@@ -1,0 +1,76 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mypv
+spec:
+  capacity:
+    storage: "50Mi"
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Recycle
+  storageClassName: manual
+  hostPath: # This is useful for single-node development and testing only! 
+    path: "/mnt/data" #Path of the directory on the host
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mypvc
+spec:
+  resources:
+    requests:
+      storage: "50Mi"
+  volumeMode: Filesystem
+  storageClassName: manual # if we were on aws, this would be diff
+  accessModes:
+    - ReadWriteOnce
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pv-pvc
+spec:
+  selector:
+    matchLabels:
+      app: pv-pvc
+  template:
+    metadata:
+      labels:
+        app: pv-pvc
+    spec:
+      # Now we need need to tell that this pod can use the claim
+      volumes: # same level as containers
+        - name: data # could be any name
+          persistentVolumeClaim:
+            claimName: mypvc
+      containers:
+      - name: pv-pvc
+        image: nginx:1.20-alpine
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        volumeMounts:
+          - mountPath: /usr/share/nginx/html # nginx specific # we'll be mounting the file we created on both nodes in this location
+            name: data # has to match volume name
+        ports:
+        - containerPort: 80
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: pv-pvc
+spec:
+  type: LoadBalancer
+  selector:
+    app: pv-pc
+  ports:
+  - port: 80
+    targetPort: 80

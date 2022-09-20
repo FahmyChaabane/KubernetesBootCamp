@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: emptydit-volume
+spec:
+  selector:
+    matchLabels:
+      app: emptydit-volume
+  template:
+    metadata:
+      labels:
+        app: emptydit-volume
+    spec:
+      volumes: # same level as containers
+        - name: cache # could be any name
+          emptyDir: {} # this is how to use it
+      containers:
+      - name: one
+        image: busybox
+        command:
+          - "sh" # could be just array and no '-' : ["sh"]
+        args:
+          - "-c"
+          - "touch /foo/bar.txt && sleep 4000"
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        volumeMounts: # takes an array cuz we can mount multiple volumes.
+          - mountPath: /foo
+            name: cache # must match the volume name
+        # ports: we won't be needing to export any port
+        # - containerPort: <Port>
+      - name: two
+        image: busybox
+        command:
+          - "sleep"
+          - "4000"
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        volumeMounts:
+          - mountPath: /foo
+            name: cache

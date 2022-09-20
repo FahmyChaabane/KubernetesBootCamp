@@ -1,0 +1,93 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-properties
+data:
+  app-name: order
+  app-version: 1.0.0
+  team: engineering
+
+--- 
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-conf
+data:
+  nginx.conf: |
+    what
+    is here
+    trying 
+    to do
+
+--- 
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: config-map
+spec:
+  selector:
+    matchLabels:
+      app: config-map
+  template:
+    metadata:
+      labels:
+        app: config-map
+    spec:
+      volumes: 
+        - name: app-properties
+          configMap:
+            name: app-properties # must match its configMap name
+        - name: nginx-conf 
+          configMap:
+            name: nginx-conf # must match its configMap name
+        - name: configs
+          projected: # to merge configs into one single volume
+            sources: # sources: list of volume projections
+              - configMap:
+                  name: nginx-conf # must match its configMap name
+              - configMap: 
+                  name: app-properties # must match its configMap name
+      containers:
+      - name: config-map-volume
+        image: nginx
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        volumeMounts:
+          - mountPath: /etc/order/properties # could be anywhere else inside the container 
+            name: app-properties # must match its volume name
+          - mountPath: /etc/order/nginx
+            name: nginx-conf # must match its volume name
+          - mountPath: /etc/order/config
+            name: configs # must match its volume name
+      - name: config-map-env
+        image: mongo
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        env:
+          - name: APP_VERSION # could be anything
+            valueFrom:
+              configMapKeyRef:
+                name: app-properties # must match its configMap name
+                key: app-version # must match its configMap property name
+          - name: APP_NAME # could be anything
+            valueFrom:
+              configMapKeyRef:
+                name: app-properties # must match its configMap name
+                key: app-name # must match its configMap property name
+          - name: TEAM # could be anything
+            valueFrom:
+              configMapKeyRef:
+                name: app-properties # must match its configMap name
+                key: team # must match its configMap property name
+          - name: NGINX_CONFIG # could be anything
+            valueFrom:
+              configMapKeyRef:
+                name: nginx-conf # must match its configMap name
+                key: nginx.conf # must match its configMap property name
+                

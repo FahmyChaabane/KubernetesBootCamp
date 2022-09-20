@@ -1,0 +1,15 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-backup-job
+spec:
+  ttlSecondsAfterFinished: 20 # the time that it takes to terminate the job upon completion # BXR
+  template:
+    spec:
+      containers:
+      - name: backup
+        image: busybox
+        command: ["sh",  "-c"]
+        args:
+          - "echo 'performing db backup...' && sleep 20" # this will take 20s, and then will wait an other 20s to terminate (BXR)
+      restartPolicy: Never

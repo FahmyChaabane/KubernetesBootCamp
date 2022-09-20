@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: customer
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: customer # here, the ReplicaSet will manage anything that has this label right here.
+  template:
+    metadata:
+      labels:
+        app: customer
+        environment: test
+        departement: engineering
+        tier: backend
+    spec:
+      containers:
+      - name: customer
+        image: amigoscode/kubernetes:customer-v1
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        livenessProbe: # container will be restarted if the probe fails. 
+          httpGet:
+            path: "/health" # could be any other endpoint
+            port: 8080 # should match with port inside container i guess.
+            # could add other properties like: host, header, etc...
+          initialDelaySeconds: 5 #kick off Probe Liveness check after 5 seconds # very tricky param, we need to execute liveness probe only when the app is ready, or else it will think it's not healthy and gonna restart it and we'll end-up in an infinte loop and never be ready.
+          timeoutSeconds: 1 #Number of seconds after which Probe times-out, default 1s
+          failureThreshold: 3 # minimum concecutive failures for the probe to be considered failed after having succeded, default 3s
+          periodSeconds: 5 # How often (in seconds) to perform the probe, default 10s, perfom the check every 5 seconds
+        readinessProbe:
+          httpGet:
+            path: "/health" # could be any other endpoint
+            port: 8080 # should match with port inside container i guess.
+            # could add other properties like: host, header, etc...
+          initialDelaySeconds: 5 #kick off Probe Readiness check after 5 seconds
+          timeoutSeconds: 1 #Number of seconds after which Probe times-out, default 1s
+          failureThreshold: 3 # minimum concecutive failures for the probe to be considered failed after having succeded, default 3s
+          periodSeconds: 5 # How often (in seconds) to perform the probe, default 10s, perfom the check every 5 seconds
+        env:
+          - name: ORDER_SERVICE
+            value: "order" # ip and port of the service
+        ports:
+        - containerPort: 8080
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: customer-node
+spec:
+  type: NodePort
+  selector:
+    app: customer
+  ports:
+  - port: 80 # we wanna export the service on 80 # keni fhmet mn aand NANA, hedha port mtaa ClusterIP automatically created
+    targetPort: 8080
+    nodePort: 30001
+
+--- 
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: customer
+spec:
+  selector:
+    app: customer
+  ports:
+  - port: 80
+    targetPort: 8080
+

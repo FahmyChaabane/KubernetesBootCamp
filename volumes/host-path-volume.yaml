@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hostpath
+spec:
+  selector:
+    matchLabels:
+      app: hostpath
+  template:
+    metadata:
+      labels:
+        app: hostpath
+    spec:
+      volumes: # same level as containers
+        - name: var-log # could be any name
+          hostPath:
+            path: /var/log # location on the host (node)
+      containers:
+      - name: hostpath
+        image: busybox
+        command:
+          - "sleep"
+          - "4000"
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        volumeMounts:
+          - mountPath: /var/log # could be anything else # will be create inside container if not exist # location inside the container
+            name: var-log
+            readOnly: true # prevent pod from writing inside that location
